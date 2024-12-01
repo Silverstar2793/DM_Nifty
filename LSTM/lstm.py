@@ -116,7 +116,7 @@ class StockLSTMPredictor:
 
 # Example usage:
 if __name__ == '__main__':
-    lstm_predictor = StockLSTMPredictor(data_path='path_to_your_csv_file.csv')
+    lstm_predictor = StockLSTMPredictor(data_path=r"D:\Studies\4th Year\Data Mining\Project\new\Nifty_50_concatenated.csv")
     lstm_predictor.load_data()
     lstm_predictor.split_data()
     lstm_predictor.train_model(epochs=20, batch_size=32)
