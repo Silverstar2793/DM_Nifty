@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,13 +8,14 @@ from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, TensorDataset
 
 class StockLSTMPredictor:
-    def __init__(self, data_path):
+    def __init__(self, data_path, model_save_path='lstm_model.pth'):
         self.data_path = data_path
         self.df = None
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         self.train_data = None
         self.test_data = None
         self.model = None
+        self.model_save_path = model_save_path
 
     def load_data(self):
         """Load and preprocess stock data."""
@@ -61,7 +63,7 @@ class StockLSTMPredictor:
         sequence_length = 60
         X_train, y_train = self.create_sequences(self.train_data, sequence_length)
         self.build_model((X_train.shape[1], 1))
-        
+
         # Convert to PyTorch tensors
         X_train = torch.tensor(X_train, dtype=torch.float32)
         y_train = torch.tensor(y_train, dtype=torch.float32)
@@ -83,7 +85,19 @@ class StockLSTMPredictor:
                 optimizer.step()
             print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item()}")
 
-        print("Model trained successfully.")
+        # Save the model after training
+        torch.save(self.model.state_dict(), self.model_save_path)
+        print("Model trained and saved successfully.")
+
+    def load_model(self):
+        """Load the saved model if exists."""
+        if os.path.exists(self.model_save_path):
+            self.model = self.build_model((60, 1))  # Ensure the model is built before loading the weights
+            self.model.load_state_dict(torch.load(self.model_save_path))
+            self.model.eval()
+            print("Model loaded successfully.")
+        else:
+            print("Model not found, please train the model first.")
 
     def evaluate_model(self):
         """Evaluate the model and visualize predictions."""
@@ -94,7 +108,6 @@ class StockLSTMPredictor:
         X_test = torch.tensor(X_test, dtype=torch.float32)
         y_test = torch.tensor(y_test, dtype=torch.float32)
 
-        self.model.eval()
         with torch.no_grad():
             predictions = self.model(X_test.unsqueeze(-1)).squeeze().numpy()
 
@@ -119,5 +132,11 @@ if __name__ == '__main__':
     lstm_predictor = StockLSTMPredictor(data_path=r"D:\Studies\4th Year\Data Mining\Project\new\Nifty_50_concatenated.csv")
     lstm_predictor.load_data()
     lstm_predictor.split_data()
-    lstm_predictor.train_model(epochs=20, batch_size=32)
+    
+    # Check if model is already trained and saved, else train it
+    if not os.path.exists(lstm_predictor.model_save_path):
+        lstm_predictor.train_model(epochs=20, batch_size=32)
+    else:
+        lstm_predictor.load_model()
+    
     lstm_predictor.evaluate_model()
